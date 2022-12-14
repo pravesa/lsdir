@@ -26,9 +26,13 @@
     "preversion": "yarn lint:fix",
     "prepublishOnly": "yarn build"
   },
+  "dependencies": {
+    "picomatch": "^2.3.1"
+  },
   "devDependencies": {
     "@types/eslint": "^8.4.10",
     "@types/node": "^18.11.11",
+    "@types/picomatch": "^2.3.0",
     "@typescript-eslint/eslint-plugin": "^5.45.1",
     "@typescript-eslint/parser": "^5.45.1",
     "eslint": "^8.29.0",
