@@ -1,6 +1,6 @@
 {
   "name": "lsdirp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "List directory content paths using glob patterns",
   "keywords": [
     "readdir",
@@ -14,6 +14,10 @@
   },
   "license": "MIT",
   "author": "Praveen Saravanan",
+  "files": [
+    "lib/*",
+    "types/*"
+  ],
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "repository": "https://github.com/pravesa/lsdirp.git",
