@@ -3,8 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import picomatch from 'picomatch';
 
-// Options to configure lsdir output
-interface LsdirOptions {
+// Options to configure lsdirp output
+interface LsdirpOptions {
   root?: string;
   flatten?: boolean;
   fullPath?: boolean;
@@ -18,8 +18,8 @@ interface Matcher {
   isRecursive: boolean;
 }
 
-// Default lsdir options
-const opts: Required<LsdirOptions> = {
+// Default lsdirp options
+const opts: Required<LsdirpOptions> = {
   root: '.',
   flatten: false,
   fullPath: false,
@@ -29,7 +29,7 @@ const opts: Required<LsdirOptions> = {
 // Check whether the underlying platform is windows
 const isWin = process.platform === 'win32';
 
-// This should be always ignored otherwise lsdir will
+// This should be always ignored otherwise lsdirp will
 // take long time to read all subdirectories
 const AlwaysIgnore = ['node_modules', '.git'];
 
@@ -98,10 +98,10 @@ const flattenMapObject = (dirs: Map<string, string[]>) => {
  * This method returns list of paths for all the directories in the dirs argument.
  * It also accepts optional options for configuring the output to be returned.
  * @param dirs array of directories
- * @param options optional options to configure lsdir output
+ * @param options optional options to configure lsdirp output
  * @returns array of paths mapped to dir or array of paths
  */
-const lsdir = (dirs: string[], options: LsdirOptions = {}) => {
+const lsdirp = (dirs: string[], options: LsdirpOptions = {}) => {
   const pathList = new Map<string, string[]>();
 
   // Merge the passed in options with default options
@@ -165,4 +165,4 @@ const lsdir = (dirs: string[], options: LsdirOptions = {}) => {
   return opts.flatten ? flattenMapObject(pathList) : pathList;
 };
 
-export default lsdir;
+export default lsdirp;
