@@ -5,9 +5,23 @@ import picomatch from 'picomatch';
 
 // Options to configure lsdirp output
 interface LsdirpOptions {
+  /** Change the root dir from where to read directory content's path.
+   * @default '.' or 'process.cwd()'
+   * @see https://github.com/pravesa/lsdirp#root */
   root?: string;
+  /** If true, array of paths will be returned.
+   * @default 'false'
+   * @see https://github.com/pravesa/lsdirp#flatten */
   flatten?: boolean;
+  /** If true, the returned paths will be resolved to absolute path.
+   * @default 'false'
+   * @see https://github.com/pravesa/lsdirp#fullpath */
   fullPath?: boolean;
+  /** To ignore any files or directories, add a list of patterns excluding
+   * default ones. This might be tricky one, but it will be easier once get
+   * used to it.
+   * @default '["**\/node_modules", "**\/.git"]'
+   * @see https://github.com/pravesa/lsdirp#ignorepaths */
   ignorePaths?: string[];
 }
 
