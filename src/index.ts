@@ -11,6 +11,9 @@ interface LsdirpOptions {
   ignorePaths?: string[];
 }
 
+// Overloaded type for lsdirp options where flatten is true
+type _LsdirpOptions = LsdirpOptions & {flatten: true};
+
 // Methods and properties for matching and ignoring paths using patterns
 interface Matcher {
   isPathAllowed: picomatch.Matcher | (() => boolean);
@@ -106,7 +109,9 @@ const flattenMapObject = (dirs: Map<string, string[]>) => {
  * @param options optional options to configure lsdirp output
  * @returns array of paths mapped to dir or array of paths
  */
-const lsdirp = (dirs: string[], options: LsdirpOptions = {}) => {
+function lsdirp(dirs: string[], options: _LsdirpOptions): string[];
+function lsdirp(dirs: string[], options: LsdirpOptions): Map<string, string[]>;
+function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   const pathList = new Map<string, string[]>();
 
   // Merge the passed in options with default options
@@ -186,6 +191,6 @@ const lsdirp = (dirs: string[], options: LsdirpOptions = {}) => {
   });
   // Return array of paths if flatten is true else mapped array of paths.
   return opts.flatten ? flattenMapObject(pathList) : pathList;
-};
+}
 
 export default lsdirp;
