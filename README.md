@@ -38,6 +38,8 @@
 
 By passing optional options to second argument, lsdirp can be configured for desired output and format.
 
+> **_Important :_** Always use forward slash (posix style path separator) for patterns. If patterns with windows style path separator is passed, it will be converted to posix style for further process.
+
 ## Options
 
 list of available options,
@@ -139,20 +141,52 @@ lsdirp(['src'], {flatten: true});
 
 By default, lsdirp ignores node_modules and .git folder at any depth of the directory tree. Additionally, to ignore any file or directory, add it to the array list. This accepts both string and glob pattern.
 
-```ts
-// cwd -> project-1
+**_Important :_** Since, lsdirp uses relative or absolute path of the file / directory against the ignore path matcher, we advice you to use any of the below two methods to achieve expected result.
 
-lsdirp(['src/!in*.ts']);
-// returns [ 'src/index.ts' ]
+- #### Using `**` for matching paths to be ignored
 
-// or
+  The `**` will match the file or directory at any depth. This is more flexible than the below one and at the same time shorter to write.
 
-// This is more flexible than the above one.
-lsdirp(['src'], {ignorePaths: ['some*.ts']});
-// returns [ 'src/index.ts' ]
-```
+  ##### Example
 
-**Note:** Negation (!) is not allowed at prefix of elements in directories argument. eg: ['!src/index.ts']
+  ```ts
+  // cwd -> project-1
+
+  // This will ignore all files / directories starting with 'some' at any depth in project-1.
+  lsdirp(['src'], {ignorePaths: ['**/some*']});
+
+  // This will ignore all '.ts' files at any depth from project-2 root.
+  lsdirp(['.'], {root: '../project-2', ignorePaths: ['**/*.ts']});
+
+  // This will ignore all '.ts' files in src dir only in project-2.
+  lsdirp(['.'], {root: '../project-2', ignorePaths: ['**/src/*.ts']});
+  ```
+
+- #### Using `relative or absolute path`
+
+  If `**` is not used, then to match the file / directory, we have to include the complete relative or absolute path depending on the `fullPath` option.
+
+  ##### Example
+
+  ```ts
+  // cwd -> project-1
+
+  // This will ignore all files starting with 'some' at any depth in project-1.
+  lsdirp(['src'], {ignorePaths: ['src/some*.ts']});
+
+  // This will ignore all '.ts' files at any depth from project-2 root.
+  lsdirp(['.'], {
+    root: '../project-2',
+    ignorePaths: ['../project-2/*.ts'], // use relative path if fullPath is false
+  });
+
+  // This will ignore all '.ts' files at any depth from project-2 root.
+  lsdirp(['.'], {
+    root: '../project-2',
+    fullPath: true,
+    ignorePaths: ['D:/workspace/project-2/*.ts'], // use absolute path if fullPath is true
+  });
+  ```
 
 ### Glob Patterns
 
