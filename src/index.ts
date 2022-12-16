@@ -72,14 +72,14 @@ const readDirTree = (
     if (
       dirent.isFile() &&
       matcher.isPathAllowed(dirent.name) &&
-      !matcher.isIgnored(dirent.name)
+      !matcher.isIgnored(contentPath)
     ) {
       // Push this path if it is a file.
       filePaths.push(contentPath);
     } else if (
       dirent.isDirectory() &&
       matcher.isRecursive &&
-      !matcher.isIgnored(dirent.name)
+      !matcher.isIgnored(contentPath)
     ) {
       // Call readDirTree() with this path if it is a directory.
       readDirTree(contentPath, result, matcher);
