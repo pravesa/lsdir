@@ -70,6 +70,11 @@ const readDirTree = (
   });
 };
 
+// Replace all `\` with `/` for posix style path
+const toPosixSlash = (fsPath: string) => {
+  return fsPath.replace(/\\/g, '/');
+};
+
 /**
  * This method accepts two objects and overrides the target object by source object values
  * unless it is undefined or null values.
@@ -114,36 +119,26 @@ const lsdirp = (dirs: string[], options: LsdirpOptions = {}) => {
     }
   });
 
+  const matcher: Matcher = {
+    isPathAllowed: () => true,
+    isIgnored: picomatch(opts.ignorePaths),
+    isRecursive: true,
+  };
+
   dirs.forEach((dir) => {
     // Try reading the path content and throw error for any of the
     // errors like ENOENT, EPERM, EACCES, etc
     try {
-      // Throw exception if negated pattern is used for dir that to be traversed.
+      // Warn and ignore that dir from reading contents if negated pattern is used as prefix.
       if (dir[0] === '!') {
-        throw new Error(
-          `Negated (!) patterns are not allowed in dirs parameter (Found in '${dir}').\n` +
-            'To ignore paths, use ignorePaths option.'
+        console.warn(
+          '\x1B[38;5;227m' +
+            `Patterns in dirs parameter should not be prefixed with (!) negation (Found in '${dir}').\n` +
+            'To ignore paths from listing, add list of patterns in ignorePaths option where negation is allowed.\n' +
+            '\nSee Documentation: https://github.com/pravesa/lsdirp#lsdirp' +
+            '\x1B[0m\n'
         );
-      }
-
-      const matcher: Matcher = {
-        isPathAllowed: () => true,
-        isIgnored: picomatch(opts.ignorePaths),
-        isRecursive: true,
-      };
-
-      // Join the root and dir path
-      dir = path.join(opts.root, dir);
-
-      // Resolve the path to get the absolute path if fullpath is true
-      // else return the relative path.
-      dir = opts.fullPath
-        ? path.resolve(process.cwd(), dir)
-        : path.relative(process.cwd(), dir);
-
-      // Replace all `\` with `/` for unix style path
-      if (isWin) {
-        dir = dir.replace(/\\/g, '/');
+        return;
       }
 
       // Retrieve information about the pattern with picomatch
@@ -155,17 +150,32 @@ const lsdirp = (dirs: string[], options: LsdirpOptions = {}) => {
         matcher.isRecursive = glob.indexOf('**') !== -1;
       }
 
-      // When root dir ('.') is passed to path.relative, it returns empty string.
-      // Eventually, passing this empty value to readDir() will result in ENOENT
-      // error. So, set dir with '.' if the base is empty string.
-      dir = base || '.';
+      // Resolve the absolute path for the given root and dir from cwd.
+      let absDirPath = path.resolve(process.cwd(), path.join(opts.root, base));
+
+      // Convert to posix path style if windows
+      if (isWin) {
+        absDirPath = toPosixSlash(absDirPath);
+      }
+
+      // When fullPath is 'true', use the absolute path else resolve the relative path.
+      if (opts.fullPath) {
+        dir = absDirPath;
+      } else {
+        // When resolving for relative path {from} cwd {to} cwd ('.'), path.relative returns
+        // empty string which will result in ENOENT error if passed to fs.readdirSync() as is.
+        // So, set dir with cwd ('.') if empty string is returned.
+        dir = path.relative(process.cwd(), absDirPath) || '.';
+        // Convert to posix path style if windows
+        if (isWin) {
+          dir = toPosixSlash(dir);
+        }
+      }
 
       // Call readDirTree() only if the dir is not ignored. The test string should
       // not contain leading dots as it won't be matched. So, resolve the test path
       // to absolute path before matching it for ignored paths.
-      if (
-        !matcher.isIgnored(path.resolve(process.cwd(), dir).replace(/\\/g, '/'))
-      ) {
+      if (!matcher.isIgnored(absDirPath)) {
         readDirTree(dir, pathList, matcher);
       }
     } catch (error) {
