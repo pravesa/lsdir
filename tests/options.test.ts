@@ -72,6 +72,6 @@ describe('', () => {
 
     // This will not include .js file at any depth
     expect(paths).toHaveLength(5);
-    expect(paths[0]).toContain(relTestPath);
+    expect(paths[0]).not.toContain(absTestPath);
   });
 });

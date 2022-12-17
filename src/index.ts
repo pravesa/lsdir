@@ -35,14 +35,6 @@ interface Matcher {
   isRecursive: boolean;
 }
 
-// Default lsdirp options
-const opts: Required<LsdirpOptions> = {
-  root: '.',
-  flatten: false,
-  fullPath: false,
-  ignorePaths: [],
-};
-
 // Check whether the underlying platform is windows
 const isWin = process.platform === 'win32';
 
@@ -127,6 +119,14 @@ function lsdirp(dirs: string[], options: _LsdirpOptions): string[];
 function lsdirp(dirs: string[], options: LsdirpOptions): Map<string, string[]>;
 function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   const pathList = new Map<string, string[]>();
+
+  // Default lsdirp options
+  const opts: Required<LsdirpOptions> = {
+    root: '.',
+    flatten: false,
+    fullPath: false,
+    ignorePaths: [],
+  };
 
   // Merge the passed in options with default options
   mergeObj(opts, options);
