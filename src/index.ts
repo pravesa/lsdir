@@ -116,7 +116,7 @@ const flattenMapObject = (dirs: Map<string, string[]>) => {
  * @returns array of paths mapped to dir or array of paths
  */
 function lsdirp(dirs: string[], options: _LsdirpOptions): string[];
-function lsdirp(dirs: string[], options: LsdirpOptions): Map<string, string[]>;
+function lsdirp(dirs: string[], options?: LsdirpOptions): Map<string, string[]>;
 function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   const pathList = new Map<string, string[]>();
 
