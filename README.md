@@ -1,6 +1,6 @@
 # lsdirp
 
-![npm](https://img.shields.io/npm/v/lsdirp) ![NPM](https://img.shields.io/npm/l/lsdirp) ![npm bundle size](https://img.shields.io/bundlephobia/minzip/lsdirp)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/pravesa/lsdirp/node-ci.yaml?branch=main) ![npm](https://img.shields.io/npm/v/lsdirp) ![NPM](https://img.shields.io/npm/l/lsdirp)
 
 `lsdirp` short for list(**ls**) directory(**dir**) content paths(**p**) is similar to fs.readdir() method but with the capability to read the directory recursively with or without using glob patterns.
 

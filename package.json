@@ -1,6 +1,6 @@
 {
   "name": "lsdirp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "List directory content paths using glob patterns",
   "keywords": [
     "readdir",
