@@ -61,20 +61,14 @@ const readDirTree = (
   fs.readdirSync(dir, {withFileTypes: true}).forEach((dirent) => {
     const contentPath = dir + '/' + dirent.name;
 
-    if (
-      dirent.isFile() &&
-      matcher.isPathAllowed(dirent.name) &&
-      !matcher.isIgnored(contentPath)
-    ) {
-      // Push this path if it is a file.
-      filePaths.push(contentPath);
-    } else if (
-      dirent.isDirectory() &&
-      matcher.isRecursive &&
-      !matcher.isIgnored(contentPath)
-    ) {
-      // Call readDirTree() with this path if it is a directory.
-      readDirTree(contentPath, result, matcher);
+    if (!matcher.isIgnored(contentPath) && !matcher.isIgnored(dirent.name)) {
+      if (dirent.isFile() && matcher.isPathAllowed(dirent.name)) {
+        // Push this path if it is a file.
+        filePaths.push(contentPath);
+      } else if (dirent.isDirectory() && matcher.isRecursive) {
+        // Call readDirTree() with this path if it is a directory.
+        readDirTree(contentPath, result, matcher);
+      }
     }
   });
 };
@@ -140,7 +134,14 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
 
   const matcher: Matcher = {
     isPathAllowed: () => true,
-    isIgnored: picomatch(opts.ignorePaths),
+    isIgnored: picomatch(opts.ignorePaths, {
+      // Remove leading dots from test string before matching
+      // as globstar '**' won't match them. Enable the format
+      // option only when fullPath is false.
+      format: opts.fullPath
+        ? undefined
+        : (str: string) => str.replace(/^\/?(\.{1,2}\/)+/, ''),
+    }),
     isRecursive: true,
   };
 
