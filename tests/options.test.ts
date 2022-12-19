@@ -87,4 +87,21 @@ describe('Test suite for lsdirp options', () => {
     expect(paths).toHaveLength(5);
     expect(paths[0]).not.toContain(absTestPath);
   });
+
+  // Test for returned value to be Map when flatten is true
+  // and should not contain path prefixed to the file.
+  test('withFilePath option', () => {
+    paths = lsdirp(['src'], {
+      root: testRootDir,
+      flatten: true,
+      withFilePath: false,
+    });
+
+    // Expect the returned value to be Map
+    expect(paths).toBeInstanceOf(Map);
+    const files = paths.get(relTestPath) ?? [];
+
+    expect(files[0]).toBe('.file');
+    expect(files[0]).not.toContain(relTestPath);
+  });
 });
