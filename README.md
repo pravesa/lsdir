@@ -50,6 +50,7 @@ list of available options,
   fullpath: boolean,
   flatten: boolean,
   ignorePaths: string[],
+  withFilePath: boolean,
 }
 ```
 
@@ -85,6 +86,8 @@ workspace
 
 Change the root dir from where to read dir contents and list all matching paths.
 
+##### Example
+
 ```ts
 // cwd -> project-1
 
@@ -103,7 +106,9 @@ lsdirp(['src/**/*.js', 'utils/*.js'], {
 
 **default : `false`**</br>
 
-By default, lsdirp method returns paths relative to the root. For absolute path, set this option to true.
+By default, lsdirp method returns paths relative to the root. For absolute path, set this option to `true`.
+
+##### Example
 
 ```ts
 // cwd -> project-1
@@ -124,16 +129,21 @@ lsdirp(['src'], {fullPath: true});
 
 **default : `false`**</br>
 
-By default, lsdirp method returns array of paths mapped to each dir and subdirectory. With flatten 'true', the returned value will be array of all matched file paths.
+By default, lsdirp method returns array of paths mapped to each dir and subdirectory. With flatten `true`, the returned value will be array of all matched file paths with the exception it will have no effect when used with option withFilePath `false`.
+
+##### Example
 
 ```ts
 // cwd -> project-1
 
 lsdirp(['src'], {flatten: true});
 // returns [ 'src/somefile.ts', 'src/index.ts' ]
+
+lsdirp(['src'], {flatten: true, withFilePath: false});
+// returns map(1) { 'src' => [ 'somefile.ts', 'index.ts' ]}
 ```
 
-**Note:** By default, depending on the glob pattern, the mapped dir might contain empty array. But in flattened mode, only matched paths are returned.
+**Note:** Depending on the glob pattern or contents, the returned map might contain empty array. But in flattened mode, those empty arrays are stripped.
 
 ### `ignorePaths`
 
@@ -187,6 +197,21 @@ By default, lsdirp ignores node_modules and .git folder at any depth of the dire
     ignorePaths: ['D:/workspace/project-2/*.ts'], // use absolute path if fullPath is true
   });
   ```
+
+### `withFilePath`
+
+**default : `true`**</br>
+
+Sometimes, we might be interested in files in each dir without the path to it. Setting this option to `false` will return only filenames with extension mapped to each dir.
+
+##### Example
+
+```ts
+// cwd -> project-1
+
+lsdirp(['src'], {withFilePath: false});
+// returns map(1) { 'src' => [ 'somefile.ts', 'index.ts' ]}
+```
 
 ### Glob Patterns
 
