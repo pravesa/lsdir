@@ -73,11 +73,6 @@ const readDirTree = (
   });
 };
 
-// Replace all `\` with `/` for posix style path
-const toPosixSlash = (fsPath: string) => {
-  return fsPath.replace(/\\/g, '/');
-};
-
 /**
  * This method accepts two objects and overrides the target object by source object values
  * unless it is undefined or null values.
@@ -145,6 +140,9 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     isRecursive: true,
   };
 
+  // Get the drive letter of the cwd if windows.
+  const driveLetter = isWin ? process.cwd().slice(0, 2) : '';
+
   dirs.forEach((dir) => {
     // Try reading the path content and throw error for any of the
     // errors like ENOENT, EPERM, EACCES, etc
@@ -170,32 +168,22 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
         matcher.isRecursive = glob.indexOf('**') !== -1;
       }
 
-      // Resolve the absolute path for the given root and dir from cwd.
-      let absDirPath = path.resolve(process.cwd(), path.join(opts.root, base));
-
-      // Convert to posix path style if windows
-      if (isWin) {
-        absDirPath = toPosixSlash(absDirPath);
-      }
+      dir = path.posix.join(opts.root, base).replace(/\\/g, '/');
 
       // When fullPath is 'true', use the absolute path else resolve the relative path.
       if (opts.fullPath) {
-        dir = absDirPath;
+        dir = driveLetter + path.posix.resolve('.', dir);
       } else {
         // When resolving for relative path {from} cwd {to} cwd ('.'), path.relative returns
         // empty string which will result in ENOENT error if passed to fs.readdirSync() as is.
         // So, set dir with cwd ('.') if empty string is returned.
-        dir = path.relative(process.cwd(), absDirPath) || '.';
-        // Convert to posix path style if windows
-        if (isWin) {
-          dir = toPosixSlash(dir);
-        }
+        dir = path.posix.relative('.', dir) || '.';
       }
 
       // Call readDirTree() only if the dir is not ignored. The test string should
       // not contain leading dots as it won't be matched. So, resolve the test path
       // to absolute path before matching it for ignored paths.
-      if (!matcher.isIgnored(absDirPath)) {
+      if (!matcher.isIgnored(dir)) {
         readDirTree(dir, pathList, matcher);
       }
     } catch (error) {
