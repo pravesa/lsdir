@@ -205,4 +205,4 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     : pathList;
 }
 
-export default lsdirp;
+export = lsdirp;
