@@ -3,6 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import picomatch from 'picomatch';
 
+enum FileType {
+  File = 0,
+  Directory = 1,
+}
+
 // Options to configure lsdirp output
 interface LsdirpOptions {
   /** Change the root dir from where to read directory content's path.
@@ -28,10 +33,18 @@ interface LsdirpOptions {
    * and each element in the file list won't be prepended with path.
    * @default 'true' */
   withFilePath?: boolean;
+  /** By default, matches any path whose file type is `File` recursively
+   * or not depending on the pattern. If `Directory`, it will match only
+   * path that is directory type.
+   * @default 'File' */
+  fileType?: keyof typeof FileType;
 }
 
 // Overloaded type for lsdirp options where flatten is true
-type _LsdirpOptions = LsdirpOptions & {flatten: true; withFilePath?: true};
+type _LsdirpOptions = LsdirpOptions & {
+  flatten: true;
+  withFilePath?: true;
+};
 
 // Methods and properties for matching and ignoring paths using patterns
 interface Matcher {
@@ -57,7 +70,8 @@ const readDirTree = (
   dir: string,
   result: Map<string, string[]>,
   matcher: Matcher,
-  withFilePath: boolean
+  withFilePath: boolean,
+  fileType: number
 ) => {
   const filePaths: string[] = [];
 
@@ -68,12 +82,16 @@ const readDirTree = (
     const contentPath = dir + '/' + dirent.name;
 
     if (!matcher.isIgnored(contentPath) && !matcher.isIgnored(dirent.name)) {
-      if (dirent.isFile() && matcher.isPathAllowed(dirent.name)) {
+      if (
+        dirent.isFile() &&
+        fileType === 0 &&
+        matcher.isPathAllowed(dirent.name)
+      ) {
         // Push this path if it is a file.
         filePaths.push(withFilePath ? contentPath : dirent.name);
       } else if (dirent.isDirectory() && matcher.isRecursive) {
         // Call readDirTree() with this path if it is a directory.
-        readDirTree(contentPath, result, matcher, withFilePath);
+        readDirTree(contentPath, result, matcher, withFilePath, fileType);
       }
     }
   });
@@ -111,6 +129,10 @@ const flattenMapObject = (dirs: Map<string, string[]>) => {
  * @returns array of paths mapped to dir or array of paths
  */
 function lsdirp(dirs: string[], options: _LsdirpOptions): string[];
+function lsdirp(
+  dirs: string[],
+  options: LsdirpOptions & {fileType: 'Directory'}
+): string[];
 function lsdirp(dirs: string[], options?: LsdirpOptions): Map<string, string[]>;
 function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   const pathList = new Map<string, string[]>();
@@ -122,6 +144,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     fullPath: false,
     ignorePaths: [],
     withFilePath: true,
+    fileType: 'File',
   };
 
   // Merge the passed in options with default options
@@ -133,6 +156,9 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       opts.ignorePaths.push(ignored);
     }
   });
+
+  // Set the file type that to be matched
+  const fileType = FileType[opts.fileType];
 
   const matcher: Matcher = {
     isPathAllowed: () => true,
@@ -191,7 +217,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       // not contain leading dots as it won't be matched. So, resolve the test path
       // to absolute path before matching it for ignored paths.
       if (!matcher.isIgnored(dir)) {
-        readDirTree(dir, pathList, matcher, opts.withFilePath);
+        readDirTree(dir, pathList, matcher, opts.withFilePath, fileType);
       }
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
@@ -200,7 +226,9 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     }
   });
   // Return array of paths if flatten and withFilePath 'true' else mapped array of paths.
-  return opts.flatten && opts.withFilePath
+  return fileType === 1
+    ? Array.from(pathList.keys())
+    : opts.flatten && opts.withFilePath
     ? flattenMapObject(pathList)
     : pathList;
 }

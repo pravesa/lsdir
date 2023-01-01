@@ -213,6 +213,21 @@ lsdirp(['src'], {withFilePath: false});
 // returns map(1) { 'src' => [ 'somefile.ts', 'index.ts' ]}
 ```
 
+### `fileType`
+
+**default : `File`**</br>
+
+By default, lsdirp will match any path whose type is a 'file' within the directory recursively or not depending on the pattern. In some occasion, we might need only paths whose file type is directory. For that, set `Directory` to fileType option. The return type is array if the fileType is `Directory` and the list includes the passed in argument too.
+
+##### Example
+
+```ts
+// cwd -> project-1
+
+lsdirp(['src'], {fileType: 'Directory'});
+// returns ['src']
+```
+
 ### Glob Patterns
 
 This library uses [picomatch](https://github.com/micromatch/picomatch) for matching files and directories with glob patterns. One of the best and popular library for working with glob patterns. It is faster and accurate at matching patterns.
