@@ -105,12 +105,13 @@ describe('Test suite for lsdirp options', () => {
     expect(files[0]).not.toContain(relTestPath);
   });
 
-  // Test for returned value to be Array when flatten is false
-  // and should contain only file type of directory.
+  // Test for returned value to be Array of directories
+  // and should include parent dir in the list.
   test('fileType option', () => {
     paths = lsdirp(['.'], {
       root: testRootDir,
       fileType: 'Directory',
+      flatten: true,
     });
 
     // Expect the returned value to be Array
@@ -118,5 +119,22 @@ describe('Test suite for lsdirp options', () => {
 
     expect(paths).toContain('tests/sample_dir');
     expect(paths).toHaveLength(4);
+  });
+
+  // Test for returned value to be Array of directories
+  // and should not include parent dir in the list.
+  test('includeParentDir option', () => {
+    paths = lsdirp(['.'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      includeParentDir: false,
+    });
+
+    // Expect the returned value to be Array
+    expect(paths).toBeInstanceOf(Array);
+
+    expect(paths).not.toContain('tests/sample_dir');
+    expect(paths).toHaveLength(3);
   });
 });

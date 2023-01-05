@@ -38,6 +38,10 @@ interface LsdirpOptions {
    * path that is directory type.
    * @default 'File' */
   fileType?: keyof typeof FileType;
+  /** Whether to include parent dir in the flatten array or not when fileType
+   * is `Directory`.
+   * @default 'true' */
+  includeParentDir?: boolean;
 }
 
 // Overloaded type for lsdirp options where flatten is true
@@ -90,6 +94,10 @@ const readDirTree = (
         // Push this path if it is a file.
         filePaths.push(prependPath ? contentPath : dirent.name);
       } else if (dirent.isDirectory() && matcher.isRecursive) {
+        // This allows to have mapped array of dirs
+        if (fileType === 1) {
+          filePaths.push(prependPath ? contentPath : dirent.name);
+        }
         // Call readDirTree() with this path if it is a directory.
         readDirTree(contentPath, result, matcher, prependPath, fileType);
       }
@@ -112,11 +120,28 @@ const mergeObj = <T extends Record<string, any>>(target: T, source: T) => {
   }
 };
 
-// Flattens the mapped array values in insertion order.
-const flattenMapObject = (dirs: Map<string, string[]>) => {
+// Flattens the mapped array values in file system tree order.
+const flattenMapObject = (
+  pathList: Map<string, string[]>,
+  fileType: number,
+  includeParentDir: boolean
+) => {
+  // Includes parent dir in the returned array
+  if (fileType === 1 && includeParentDir) {
+    const list = new Set<string>();
+    pathList.forEach((subDirs, dir) => {
+      list.add(dir);
+      subDirs.forEach((dir) => {
+        list.add(dir);
+      });
+    });
+
+    return Array.from(list);
+  }
+
   const list: string[] = [];
-  dirs.forEach((files) => {
-    list.push(...files);
+  pathList.forEach((paths) => {
+    list.push(...paths);
   });
   return list;
 };
@@ -129,10 +154,6 @@ const flattenMapObject = (dirs: Map<string, string[]>) => {
  * @returns array of paths mapped to dir or array of paths
  */
 function lsdirp(dirs: string[], options: _LsdirpOptions): string[];
-function lsdirp(
-  dirs: string[],
-  options: LsdirpOptions & {fileType: 'Directory'}
-): string[];
 function lsdirp(dirs: string[], options?: LsdirpOptions): Map<string, string[]>;
 function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   const pathList = new Map<string, string[]>();
@@ -145,6 +166,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     ignorePaths: [],
     prependPath: true,
     fileType: 'File',
+    includeParentDir: true,
   };
 
   // Merge the passed in options with default options
@@ -226,10 +248,8 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     }
   });
   // Return array of paths if flatten and prependPath are 'true' else mapped array of paths.
-  return fileType === 1
-    ? Array.from(pathList.keys())
-    : opts.flatten && opts.prependPath
-    ? flattenMapObject(pathList)
+  return opts.flatten && opts.prependPath
+    ? flattenMapObject(pathList, fileType, opts.includeParentDir)
     : pathList;
 }
 
