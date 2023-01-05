@@ -1,6 +1,6 @@
 # lsdirp
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/pravesa/lsdirp/node-ci.yaml?branch=main) ![npm](https://img.shields.io/npm/v/lsdirp) ![NPM](https://img.shields.io/npm/l/lsdirp)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/pravesa/lsdirp/node-ci.yaml?label=test) ![npm](https://img.shields.io/npm/v/lsdirp) ![NPM](https://img.shields.io/npm/l/lsdirp)
 
 `lsdirp` short for list(**ls**) directory(**dir**) content paths(**p**) is similar to fs.readdir() method but with the capability to read the directory recursively with or without using glob patterns.
 
@@ -50,7 +50,9 @@ list of available options,
   fullpath: boolean,
   flatten: boolean,
   ignorePaths: string[],
-  withFilePath: boolean,
+  prependPath: boolean,
+  fileType: 'File' | 'Directory',
+  includeParentDir: boolean;
 }
 ```
 
@@ -106,7 +108,7 @@ lsdirp(['src/**/*.js', 'utils/*.js'], {
 
 **default : `false`**</br>
 
-By default, lsdirp method returns paths relative to the root. For absolute path, set this option to `true`.
+By default, the returned value contains paths relative to the root. For absolute path, set this option to `true`.
 
 ##### Example
 
@@ -129,7 +131,7 @@ lsdirp(['src'], {fullPath: true});
 
 **default : `false`**</br>
 
-By default, lsdirp method returns array of paths mapped to each dir and subdirectory. With flatten `true`, the returned value will be array of all matched file paths with the exception it will have no effect when used with option withFilePath `false`.
+By default, lsdirp method returns array of paths mapped to each dir and subdirectory. With flatten `true`, the returned value will be array of all matched file paths. This option will have no effect when coupled with option prependPath set to `false`.
 
 ##### Example
 
@@ -139,7 +141,7 @@ By default, lsdirp method returns array of paths mapped to each dir and subdirec
 lsdirp(['src'], {flatten: true});
 // returns [ 'src/somefile.ts', 'src/index.ts' ]
 
-lsdirp(['src'], {flatten: true, withFilePath: false});
+lsdirp(['src'], {flatten: true, prependPath: false});
 // returns map(1) { 'src' => [ 'somefile.ts', 'index.ts' ]}
 ```
 
@@ -149,7 +151,7 @@ lsdirp(['src'], {flatten: true, withFilePath: false});
 
 **default : `['**/node_modules', '**/.git']`**</br>
 
-By default, lsdirp ignores node_modules and .git folder at any depth of the directory tree. Additionally, to ignore any file or directory, add it to the array list. This accepts both string and glob pattern.
+This option takes array of patterns that will be used to ignore any file or directory matching that pattern. This accepts array of both string and glob pattern.
 
 **_Important :_** Since, lsdirp uses relative or absolute path of the file / directory against the ignore path matcher, we advice you to use any of the below two methods to achieve expected result.
 
@@ -198,18 +200,18 @@ By default, lsdirp ignores node_modules and .git folder at any depth of the dire
   });
   ```
 
-### `withFilePath`
+### `prependPath`
 
 **default : `true`**</br>
 
-Sometimes, we might be interested in files in each dir without the path to it. Setting this option to `false` will return only filenames with extension mapped to each dir.
+To get the list of names of the dirent entries without path to it, set this option to `false`.
 
 ##### Example
 
 ```ts
 // cwd -> project-1
 
-lsdirp(['src'], {withFilePath: false});
+lsdirp(['src'], {prependPath: false});
 // returns map(1) { 'src' => [ 'somefile.ts', 'index.ts' ]}
 ```
 
@@ -217,14 +219,34 @@ lsdirp(['src'], {withFilePath: false});
 
 **default : `File`**</br>
 
-By default, lsdirp will match any path whose type is a 'file' within the directory recursively or not depending on the pattern. In some occasion, we might need only paths whose file type is directory. For that, set `Directory` to fileType option. The return type is array if the fileType is `Directory` and the list includes the passed in argument too.
+By default, the returned array of paths mapped to each matching dir will contain path whose type is a 'file'. To get list of directories, set `Directory` to fileType option.
+This can be coupled with other options for desired result.
 
 ##### Example
 
 ```ts
 // cwd -> project-1
 
-lsdirp(['src'], {fileType: 'Directory'});
+lsdirp(['src'], {fileType: 'Directory', flatten: true});
+// returns ['src']
+```
+
+### `includeParentDir`
+
+**default : `true`**</br>
+
+This option returns array of directory paths with passed in dir included.
+
+##### Example
+
+```ts
+// cwd -> project-1
+
+@default 'true'
+lsdirp(['.'], {fileType: 'Directory'});
+// returns ['.', 'src']
+
+lsdirp(['.'], {fileType: 'Directory', includeParentDir: false});
 // returns ['src']
 ```
 
