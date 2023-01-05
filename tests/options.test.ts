@@ -90,11 +90,11 @@ describe('Test suite for lsdirp options', () => {
 
   // Test for returned value to be Map when flatten is true
   // and should not contain path prefixed to the file.
-  test('withFilePath option', () => {
+  test('prependPath option', () => {
     paths = lsdirp(['src'], {
       root: testRootDir,
       flatten: true,
-      withFilePath: false,
+      prependPath: false,
     });
 
     // Expect the returned value to be Map

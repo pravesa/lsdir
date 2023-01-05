@@ -15,7 +15,7 @@ interface LsdirpOptions {
    * @see https://github.com/pravesa/lsdirp#root */
   root?: string;
   /** If true, array of paths will be returned. This option won't work
-   * when withFilePath option is 'false'.
+   * when prependPath option is 'false'.
    * @default 'false'
    * @see https://github.com/pravesa/lsdirp#flatten */
   flatten?: boolean;
@@ -29,10 +29,10 @@ interface LsdirpOptions {
    * @default '["**\/node_modules", "**\/.git"]'
    * @see https://github.com/pravesa/lsdirp#ignorepaths */
   ignorePaths?: string[];
-  /** If false, the returned value will be array of filenames mapped to each dir
-   * and each element in the file list won't be prepended with path.
+  /** If false, the returned value will be mapped array of dirent names that
+   * won't be prepended with path.
    * @default 'true' */
-  withFilePath?: boolean;
+  prependPath?: boolean;
   /** By default, matches any path whose file type is `File` recursively
    * or not depending on the pattern. If `Directory`, it will match only
    * path that is directory type.
@@ -43,7 +43,7 @@ interface LsdirpOptions {
 // Overloaded type for lsdirp options where flatten is true
 type _LsdirpOptions = LsdirpOptions & {
   flatten: true;
-  withFilePath?: true;
+  prependPath?: true;
 };
 
 // Methods and properties for matching and ignoring paths using patterns
@@ -70,7 +70,7 @@ const readDirTree = (
   dir: string,
   result: Map<string, string[]>,
   matcher: Matcher,
-  withFilePath: boolean,
+  prependPath: boolean,
   fileType: number
 ) => {
   const filePaths: string[] = [];
@@ -88,10 +88,10 @@ const readDirTree = (
         matcher.isPathAllowed(dirent.name)
       ) {
         // Push this path if it is a file.
-        filePaths.push(withFilePath ? contentPath : dirent.name);
+        filePaths.push(prependPath ? contentPath : dirent.name);
       } else if (dirent.isDirectory() && matcher.isRecursive) {
         // Call readDirTree() with this path if it is a directory.
-        readDirTree(contentPath, result, matcher, withFilePath, fileType);
+        readDirTree(contentPath, result, matcher, prependPath, fileType);
       }
     }
   });
@@ -143,7 +143,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     flatten: false,
     fullPath: false,
     ignorePaths: [],
-    withFilePath: true,
+    prependPath: true,
     fileType: 'File',
   };
 
@@ -217,7 +217,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       // not contain leading dots as it won't be matched. So, resolve the test path
       // to absolute path before matching it for ignored paths.
       if (!matcher.isIgnored(dir)) {
-        readDirTree(dir, pathList, matcher, opts.withFilePath, fileType);
+        readDirTree(dir, pathList, matcher, opts.prependPath, fileType);
       }
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
@@ -225,10 +225,10 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       throw error;
     }
   });
-  // Return array of paths if flatten and withFilePath 'true' else mapped array of paths.
+  // Return array of paths if flatten and prependPath are 'true' else mapped array of paths.
   return fileType === 1
     ? Array.from(pathList.keys())
-    : opts.flatten && opts.withFilePath
+    : opts.flatten && opts.prependPath
     ? flattenMapObject(pathList)
     : pathList;
 }
