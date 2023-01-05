@@ -42,6 +42,9 @@ interface LsdirpOptions {
    * is `Directory`.
    * @default 'true' */
   includeParentDir?: boolean;
+  /** To read or include symlink's content, set this to `true`.
+   * @default 'false' */
+  allowSymlinks?: boolean;
 }
 
 // Overloaded type for lsdirp options where flatten is true
@@ -64,6 +67,8 @@ const isWin = process.platform === 'win32';
 // take long time to read all subdirectories for large projects.
 const AlwaysIgnore = ['**/node_modules', '**/.git'];
 
+let inodes: Set<number> | null = null;
+
 /**
  * The `readDirTree()` method is similar to node's `fs.readDir()` except it also
  * reads the subdirectory contents recursively.
@@ -75,7 +80,8 @@ const readDirTree = (
   result: Map<string, string[]>,
   matcher: Matcher,
   prependPath: boolean,
-  fileType: number
+  fileType: number,
+  allowSymlinks: boolean
 ) => {
   const filePaths: string[] = [];
 
@@ -99,7 +105,41 @@ const readDirTree = (
           filePaths.push(prependPath ? contentPath : dirent.name);
         }
         // Call readDirTree() with this path if it is a directory.
-        readDirTree(contentPath, result, matcher, prependPath, fileType);
+        readDirTree(
+          contentPath,
+          result,
+          matcher,
+          prependPath,
+          fileType,
+          allowSymlinks
+        );
+      } else if (dirent.isSymbolicLink() && allowSymlinks) {
+        // Use lstat for metadata about symlink itself
+        const lstat = fs.lstatSync(contentPath);
+        // Use stat for checking the file type of the symlink's target.
+        const stat = fs.statSync(contentPath);
+
+        // Check whether the inodes set has current symlink's inode entry.
+        // If exist, do nothing to avoid circular loop.
+        if (inodes && !inodes.has(lstat.ino)) {
+          // Add the dirent's inode to the set if not exist
+          inodes.add(lstat.ino);
+
+          // Push to the filePaths list if the symlink points to fileType 'File'.
+          if (stat.isFile() && fileType === 0) {
+            filePaths.push(prependPath ? contentPath : dirent.name);
+            // Read the symlink's content if the target is 'Directory'
+          } else if (stat.isDirectory()) {
+            readDirTree(
+              contentPath,
+              result,
+              matcher,
+              prependPath,
+              fileType,
+              allowSymlinks
+            );
+          }
+        }
       }
     }
   });
@@ -158,6 +198,8 @@ function lsdirp(dirs: string[], options?: LsdirpOptions): Map<string, string[]>;
 function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   const pathList = new Map<string, string[]>();
 
+  inodes = new Set<number>();
+
   // Default lsdirp options
   const opts: Required<LsdirpOptions> = {
     root: '.',
@@ -167,6 +209,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     prependPath: true,
     fileType: 'File',
     includeParentDir: true,
+    allowSymlinks: false,
   };
 
   // Merge the passed in options with default options
@@ -239,7 +282,14 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       // not contain leading dots as it won't be matched. So, resolve the test path
       // to absolute path before matching it for ignored paths.
       if (!matcher.isIgnored(dir)) {
-        readDirTree(dir, pathList, matcher, opts.prependPath, fileType);
+        readDirTree(
+          dir,
+          pathList,
+          matcher,
+          opts.prependPath,
+          fileType,
+          opts.allowSymlinks
+        );
       }
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
@@ -247,6 +297,8 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       throw error;
     }
   });
+  inodes = null;
+
   // Return array of paths if flatten and prependPath are 'true' else mapped array of paths.
   return opts.flatten && opts.prependPath
     ? flattenMapObject(pathList, fileType, opts.includeParentDir)
