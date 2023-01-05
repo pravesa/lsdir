@@ -215,6 +215,8 @@ lsdirp(['src'], {prependPath: false});
 // returns map(1) { 'src' => [ 'somefile.ts', 'index.ts' ]}
 ```
 
+**Note:** Before `v2`, this option is `withFilePath`.
+
 ### `fileType`
 
 **default : `File`**</br>
