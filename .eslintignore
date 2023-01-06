@@ -6,6 +6,11 @@ logs
 types
 lib
 
+# Ignore this folder which contains symlinks
+# that will cause circular loop
+tests/sample_dir
+tests/symlink
+
 # Yarn generated files
 **/.yarn
 **/.pnp.*

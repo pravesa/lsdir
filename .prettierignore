@@ -19,6 +19,11 @@ lerna-debug.log*
 dist
 dist-ssr
 
+# Ignore this folder which contains symlinks
+# that will cause circular loop
+tests/sample_dir
+tests/symlink
+
 # Yarn generated files
 .pnp.*
 .yarn/*
