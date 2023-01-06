@@ -73,47 +73,40 @@ let inodes: Set<number> | null = null;
  * The `readDirTree()` method is similar to node's `fs.readDir()` except it also
  * reads the subdirectory contents recursively.
  * @param dir path to a dir
- * @param result array of paths mapped to dir
+ * @param r array of paths mapped to dir
+ * @param m matcher object
+ * @param p prependPath option
+ * @param f fileType
+ * @param s allowSymlinks
  */
 const readDirTree = (
   dir: string,
-  result: Map<string, string[]>,
-  matcher: Matcher,
-  prependPath: boolean,
-  fileType: number,
-  allowSymlinks: boolean
+  r: Map<string, string[]>,
+  m: Matcher,
+  p: boolean,
+  f: number,
+  s: boolean
 ) => {
   const filePaths: string[] = [];
 
   // Placing this here will make the result to be ordered as dir then subdirectories.
-  result.set(dir, filePaths);
+  r.set(dir, filePaths);
 
   fs.readdirSync(dir, {withFileTypes: true}).forEach((dirent) => {
     const contentPath = dir + '/' + dirent.name;
 
-    if (!matcher.isIgnored(contentPath) && !matcher.isIgnored(dirent.name)) {
-      if (
-        dirent.isFile() &&
-        fileType === 0 &&
-        matcher.isPathAllowed(dirent.name)
-      ) {
+    if (!m.isIgnored(contentPath) && !m.isIgnored(dirent.name)) {
+      if (dirent.isFile() && f === 0 && m.isPathAllowed(dirent.name)) {
         // Push this path if it is a file.
-        filePaths.push(prependPath ? contentPath : dirent.name);
-      } else if (dirent.isDirectory() && matcher.isRecursive) {
+        filePaths.push(p ? contentPath : dirent.name);
+      } else if (dirent.isDirectory() && m.isRecursive) {
         // This allows to have mapped array of dirs
-        if (fileType === 1) {
-          filePaths.push(prependPath ? contentPath : dirent.name);
+        if (f === 1) {
+          filePaths.push(p ? contentPath : dirent.name);
         }
         // Call readDirTree() with this path if it is a directory.
-        readDirTree(
-          contentPath,
-          result,
-          matcher,
-          prependPath,
-          fileType,
-          allowSymlinks
-        );
-      } else if (dirent.isSymbolicLink() && allowSymlinks) {
+        readDirTree(contentPath, r, m, p, f, s);
+      } else if (dirent.isSymbolicLink() && s) {
         // Use lstat for metadata about symlink itself
         const lstat = fs.lstatSync(contentPath);
         // Use stat for checking the file type of the symlink's target.
@@ -126,18 +119,11 @@ const readDirTree = (
           inodes.add(lstat.ino);
 
           // Push to the filePaths list if the symlink points to fileType 'File'.
-          if (stat.isFile() && fileType === 0) {
-            filePaths.push(prependPath ? contentPath : dirent.name);
+          if (stat.isFile() && f === 0) {
+            filePaths.push(p ? contentPath : dirent.name);
             // Read the symlink's content if the target is 'Directory'
           } else if (stat.isDirectory()) {
-            readDirTree(
-              contentPath,
-              result,
-              matcher,
-              prependPath,
-              fileType,
-              allowSymlinks
-            );
+            readDirTree(contentPath, r, m, p, f, s);
           }
         }
       }
@@ -302,6 +288,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       throw error;
     }
   });
+
   inodes = null;
 
   // Return array of paths if flatten and prependPath are 'true' else mapped array of paths.
