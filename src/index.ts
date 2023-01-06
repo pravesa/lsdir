@@ -103,39 +103,58 @@ const readDirTree = (
     fs.readdirSync(dir, {withFileTypes: true}).forEach((dirent) => {
       const contentPath = dir + '/' + dirent.name;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const type: number = (dirent as any)[
+        Object.getOwnPropertySymbols(dirent)[0]
+      ];
+
       if (!m.isIgnored(contentPath) && !m.isIgnored(dirent.name)) {
-        if (dirent.isFile() && f === 0 && m.isPathAllowed(dirent.name)) {
-          // Push this path if it is a file.
-          filePaths.push(p ? contentPath : dirent.name);
-        } else if (dirent.isDirectory()) {
-          // This allows to have mapped array of dirs
-          if (f === 1) {
-            filePaths.push(p ? contentPath : dirent.name);
-          }
-          // Call readDirTree() with this path if it is a directory.
-          readDirTree(contentPath, r, m, depth, p, f, s);
-        } else if (dirent.isSymbolicLink() && s) {
-          // Use lstat for metadata about symlink itself
-          const lstat = fs.lstatSync(contentPath);
-          // Use stat for checking the file type of the symlink's target.
-          const stat = fs.statSync(contentPath);
-
-          // Check whether the inodes set has current symlink's inode entry.
-          // If exist, do nothing to avoid circular loop.
-          if (inodes && !inodes.has(lstat.ino)) {
-            // Add the dirent's inode to the set if not exist
-            inodes.add(lstat.ino);
-
-            // Push to the filePaths list if the symlink points to file or fileType
-            // option set to 'Directory'.
-            if ((stat.isFile() && f === 0) || (stat.isDirectory() && f === 1)) {
+        switch (type) {
+          case 1: // 'File'
+            if (f === 0 && m.isPathAllowed(dirent.name)) {
+              // Push this path if it is a file.
               filePaths.push(p ? contentPath : dirent.name);
             }
-            // Read the symlink's content if the target is 'Directory'
-            if (stat.isDirectory()) {
-              readDirTree(contentPath, r, m, depth, p, f, s);
+            break;
+          case 2: // 'Directory'
+            // This allows to have mapped array of dirs
+            if (f === 1) {
+              filePaths.push(p ? contentPath : dirent.name);
             }
-          }
+            // Call readDirTree() with this path if it is a directory.
+            readDirTree(contentPath, r, m, depth, p, f, s);
+
+            break;
+          case 3: // 'Symbolic Links'
+            if (s) {
+              // Use lstat for metadata about symlink itself
+              const lstat = fs.lstatSync(contentPath);
+              // Use stat for checking the file type of the symlink's target.
+              const stat = fs.statSync(contentPath);
+
+              // Check whether the inodes set has current symlink's inode entry.
+              // If exist, do nothing to avoid circular loop.
+              if (inodes && !inodes.has(lstat.ino)) {
+                // Add the dirent's inode to the set if not exist
+                inodes.add(lstat.ino);
+
+                // Push to the filePaths list if the symlink points to file or fileType
+                // option set to 'Directory'.
+                if (
+                  (stat.isFile() && f === 0) ||
+                  (stat.isDirectory() && f === 1)
+                ) {
+                  filePaths.push(p ? contentPath : dirent.name);
+                }
+                // Read the symlink's content if the target is 'Directory'
+                if (stat.isDirectory()) {
+                  readDirTree(contentPath, r, m, depth, p, f, s);
+                }
+              }
+            }
+            break;
+          default:
+            break;
         }
       }
     });
