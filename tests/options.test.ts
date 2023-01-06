@@ -153,4 +153,20 @@ describe('Test suite for lsdirp options', () => {
     expect(paths).toContain('tests/sample_dir/symlink');
     expect(paths).toHaveLength(6);
   });
+
+  // Test that lsdirp stops reading dir content at specified depth
+  test('depth option', () => {
+    paths = lsdirp(['.'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      depth: 1,
+    });
+
+    // Expect the returned value to be Array
+    expect(paths).toBeInstanceOf(Array);
+
+    expect(paths).not.toContain('tests/sample_dir/src/sub_dir');
+    expect(paths).toHaveLength(3);
+  });
 });

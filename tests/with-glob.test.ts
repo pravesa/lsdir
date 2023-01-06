@@ -149,4 +149,28 @@ describe('Test suite for lsdirp without using glob', () => {
     });
     expect(paths).toHaveLength(12);
   });
+
+  // Test that depth option has effect even when '**' is used
+  test('should stop reading dir at specified depth when "**" is used', () => {
+    paths = lsdirp(['**'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      allowSymlinks: true,
+      depth: 1,
+    });
+    expect(paths).toHaveLength(4);
+  });
+
+  // Test that depth option has no effect when '**' is not used
+  test('should not take depth into account when "**" is not used', () => {
+    paths = lsdirp(['../*'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      allowSymlinks: true,
+      depth: 1,
+    });
+    expect(paths).toHaveLength(3);
+  });
 });

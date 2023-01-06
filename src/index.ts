@@ -45,6 +45,10 @@ interface LsdirpOptions {
   /** To read or include symlink's content, set this to `true`.
    * @default 'false' */
   allowSymlinks?: boolean;
+  /** Specify the depth of sub directories to read. By default, recursive (0) read
+   * is enabled. With glob patterns, `**` will set this to 0 else 1.
+   * @default 0 */
+  depth?: number;
 }
 
 // Overloaded type for lsdirp options where flatten is true
@@ -57,7 +61,6 @@ type _LsdirpOptions = LsdirpOptions & {
 interface Matcher {
   isPathAllowed: picomatch.Matcher | (() => boolean);
   isIgnored: picomatch.Matcher;
-  isRecursive: boolean;
 }
 
 // Check whether the underlying platform is windows
@@ -75,6 +78,7 @@ let inodes: Set<number> | null = null;
  * @param dir path to a dir
  * @param r array of paths mapped to dir
  * @param m matcher object
+ * @param d depth
  * @param p prependPath option
  * @param f fileType
  * @param s allowSymlinks
@@ -83,53 +87,59 @@ const readDirTree = (
   dir: string,
   r: Map<string, string[]>,
   m: Matcher,
+  d: number,
   p: boolean,
   f: number,
   s: boolean
 ) => {
-  const filePaths: string[] = [];
+  let depth = d;
+  // Read recursively if depth is 0 else stop reading at specified depth.
+  if (depth === 0 || depth-- > 1) {
+    const filePaths: string[] = [];
 
-  // Placing this here will make the result to be ordered as dir then subdirectories.
-  r.set(dir, filePaths);
+    // Placing this here will make the result to be ordered as dir then subdirectories.
+    r.set(dir, filePaths);
 
-  fs.readdirSync(dir, {withFileTypes: true}).forEach((dirent) => {
-    const contentPath = dir + '/' + dirent.name;
+    fs.readdirSync(dir, {withFileTypes: true}).forEach((dirent) => {
+      const contentPath = dir + '/' + dirent.name;
 
-    if (!m.isIgnored(contentPath) && !m.isIgnored(dirent.name)) {
-      if (dirent.isFile() && f === 0 && m.isPathAllowed(dirent.name)) {
-        // Push this path if it is a file.
-        filePaths.push(p ? contentPath : dirent.name);
-      } else if (dirent.isDirectory() && m.isRecursive) {
-        // This allows to have mapped array of dirs
-        if (f === 1) {
+      if (!m.isIgnored(contentPath) && !m.isIgnored(dirent.name)) {
+        if (dirent.isFile() && f === 0 && m.isPathAllowed(dirent.name)) {
+          // Push this path if it is a file.
           filePaths.push(p ? contentPath : dirent.name);
-        }
-        // Call readDirTree() with this path if it is a directory.
-        readDirTree(contentPath, r, m, p, f, s);
-      } else if (dirent.isSymbolicLink() && s && m.isRecursive) {
-        // Use lstat for metadata about symlink itself
-        const lstat = fs.lstatSync(contentPath);
-        // Use stat for checking the file type of the symlink's target.
-        const stat = fs.statSync(contentPath);
-
-        // Check whether the inodes set has current symlink's inode entry.
-        // If exist, do nothing to avoid circular loop.
-        if (inodes && !inodes.has(lstat.ino)) {
-          // Add the dirent's inode to the set if not exist
-          inodes.add(lstat.ino);
-
-          // Push to the filePaths list if the symlink points to fileType 'File'.
-          if ((stat.isFile() && f === 0) || (stat.isDirectory() && f === 1)) {
+        } else if (dirent.isDirectory()) {
+          // This allows to have mapped array of dirs
+          if (f === 1) {
             filePaths.push(p ? contentPath : dirent.name);
-            // Read the symlink's content if the target is 'Directory'
           }
-          if (stat.isDirectory()) {
-            readDirTree(contentPath, r, m, p, f, s);
+          // Call readDirTree() with this path if it is a directory.
+          readDirTree(contentPath, r, m, depth, p, f, s);
+        } else if (dirent.isSymbolicLink() && s) {
+          // Use lstat for metadata about symlink itself
+          const lstat = fs.lstatSync(contentPath);
+          // Use stat for checking the file type of the symlink's target.
+          const stat = fs.statSync(contentPath);
+
+          // Check whether the inodes set has current symlink's inode entry.
+          // If exist, do nothing to avoid circular loop.
+          if (inodes && !inodes.has(lstat.ino)) {
+            // Add the dirent's inode to the set if not exist
+            inodes.add(lstat.ino);
+
+            // Push to the filePaths list if the symlink points to file or fileType
+            // option set to 'Directory'.
+            if ((stat.isFile() && f === 0) || (stat.isDirectory() && f === 1)) {
+              filePaths.push(p ? contentPath : dirent.name);
+            }
+            // Read the symlink's content if the target is 'Directory'
+            if (stat.isDirectory()) {
+              readDirTree(contentPath, r, m, depth, p, f, s);
+            }
           }
         }
       }
-    }
-  });
+    });
+  }
 };
 
 /**
@@ -197,6 +207,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
     fileType: 'File',
     includeParentDir: true,
     allowSymlinks: false,
+    depth: 0,
   };
 
   // Merge the passed in options with default options
@@ -222,11 +233,12 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
         ? undefined
         : (str: string) => str.replace(/^\/?(\.{1,2}\/)+/, ''),
     }),
-    isRecursive: true,
   };
 
   // Get the drive letter of the cwd if windows.
   const driveLetter = isWin ? process.cwd().slice(0, 2) : '';
+
+  let depth = opts.depth > 0 ? opts.depth + 1 : 0;
 
   dirs.forEach((dir) => {
     // Try reading the path content and throw error for any of the
@@ -250,7 +262,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       // Set matcher if glob pattern is used for current dir
       if (glob !== '') {
         matcher.isPathAllowed = picomatch(glob);
-        matcher.isRecursive = glob.indexOf('**') !== -1;
+        depth = glob.indexOf('**') !== -1 ? depth : 2;
       }
 
       dir = path.posix.join(opts.root, base).replace(/\\/g, '/');
@@ -278,6 +290,7 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
           dir,
           pathList,
           matcher,
+          depth,
           opts.prependPath,
           fileType,
           opts.allowSymlinks

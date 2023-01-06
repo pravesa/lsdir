@@ -54,6 +54,7 @@ list of available options,
   fileType: 'File' | 'Directory',
   includeParentDir: boolean;
   allowSymlinks: boolean;
+  depth: number;
 }
 ```
 
@@ -267,6 +268,21 @@ This option allows the symlink paths to be included for reading if set `true`.
 
 lsdirp(['.'], {fileType: 'Directory', allowSymlinks: true});
 // returns ['.', './src', './symlinkToSrc']
+```
+
+### `depth`
+
+**default : `0`**</br>
+
+By setting this option with any positive number, lsdirp will stop reading dir content at that specified depth of subdirectories. With glob patterns, this option will have effect only if `**` is included.
+
+##### Example
+
+```ts
+// cwd -> project-1
+
+lsdirp(['.'], {flatten: true, depth: 1});
+// returns ['package.json', 'main.ts']
 ```
 
 ### Glob Patterns
