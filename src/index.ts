@@ -278,10 +278,15 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
         dir = path.posix.relative('.', dir) || '.';
       }
 
-      // Call readDirTree() only if the dir is not ignored. The test string should
-      // not contain leading dots as it won't be matched. So, resolve the test path
-      // to absolute path before matching it for ignored paths.
-      if (!matcher.isIgnored(dir)) {
+      const lstat = fs.lstatSync(dir);
+
+      // Do not readDirTree() if the path is file or allowSymlinks is false or the
+      // path should be ignored.
+      if (
+        (lstat.isDirectory() ||
+          (lstat.isSymbolicLink() && opts.allowSymlinks)) &&
+        !matcher.isIgnored(dir)
+      ) {
         readDirTree(
           dir,
           pathList,
