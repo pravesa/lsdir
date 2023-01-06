@@ -117,4 +117,36 @@ describe('Test suite for lsdirp without using glob', () => {
     });
     expect(paths).toHaveLength(7);
   });
+
+  // Test that symlinks is ignored.
+  test('should ignore symlinks by default', () => {
+    paths = lsdirp(['**'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+    });
+    expect(paths).toHaveLength(4);
+  });
+
+  // Test that symlinks is included when allowSymlinks is true
+  test('should include symlinks if allowSymlinks option is true', () => {
+    paths = lsdirp(['**'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      allowSymlinks: true,
+    });
+    expect(paths).toHaveLength(6);
+  });
+
+  // Test that circular loop is avoided and the target is included only once with symlinks
+  test('should avoid circular loop and include only once with symlinks', () => {
+    paths = lsdirp(['../**'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      allowSymlinks: true,
+    });
+    expect(paths).toHaveLength(12);
+  });
 });

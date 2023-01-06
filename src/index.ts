@@ -106,7 +106,7 @@ const readDirTree = (
         }
         // Call readDirTree() with this path if it is a directory.
         readDirTree(contentPath, r, m, p, f, s);
-      } else if (dirent.isSymbolicLink() && s) {
+      } else if (dirent.isSymbolicLink() && s && m.isRecursive) {
         // Use lstat for metadata about symlink itself
         const lstat = fs.lstatSync(contentPath);
         // Use stat for checking the file type of the symlink's target.
@@ -119,10 +119,11 @@ const readDirTree = (
           inodes.add(lstat.ino);
 
           // Push to the filePaths list if the symlink points to fileType 'File'.
-          if (stat.isFile() && f === 0) {
+          if ((stat.isFile() && f === 0) || (stat.isDirectory() && f === 1)) {
             filePaths.push(p ? contentPath : dirent.name);
             // Read the symlink's content if the target is 'Directory'
-          } else if (stat.isDirectory()) {
+          }
+          if (stat.isDirectory()) {
             readDirTree(contentPath, r, m, p, f, s);
           }
         }
