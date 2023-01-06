@@ -53,6 +53,7 @@ list of available options,
   prependPath: boolean,
   fileType: 'File' | 'Directory',
   includeParentDir: boolean;
+  allowSymlinks: boolean;
 }
 ```
 
@@ -69,7 +70,8 @@ workspace
 │   │   ├── somefile.ts
 │   │   └── index.ts
 │   ├── package.json
-│   └── main.ts
+│   ├── main.ts
+│   └── symlinkToSrc
 │
 └── project-2
     ├── src
@@ -246,10 +248,25 @@ This option returns array of directory paths with passed in dir included.
 
 @default 'true'
 lsdirp(['.'], {fileType: 'Directory'});
-// returns ['.', 'src']
+// returns ['.', './src']
 
 lsdirp(['.'], {fileType: 'Directory', includeParentDir: false});
-// returns ['src']
+// returns ['./src']
+```
+
+### `allowSymlinks`
+
+**default : `false`**</br>
+
+This option allows the symlink paths to be included for reading if set `true`.
+
+##### Example
+
+```ts
+// cwd -> project-1
+
+lsdirp(['.'], {fileType: 'Directory', allowSymlinks: true});
+// returns ['.', './src', './symlinkToSrc']
 ```
 
 ### Glob Patterns
