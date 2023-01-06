@@ -137,4 +137,20 @@ describe('Test suite for lsdirp options', () => {
     expect(paths).not.toContain('tests/sample_dir');
     expect(paths).toHaveLength(3);
   });
+
+  // Test whether symlink included in the list of returned paths.
+  test('allowSymlinks option', () => {
+    paths = lsdirp(['.'], {
+      root: testRootDir,
+      fileType: 'Directory',
+      flatten: true,
+      allowSymlinks: true,
+    });
+
+    // Expect the returned value to be Array
+    expect(paths).toBeInstanceOf(Array);
+
+    expect(paths).toContain('tests/sample_dir/symlink');
+    expect(paths).toHaveLength(6);
+  });
 });
