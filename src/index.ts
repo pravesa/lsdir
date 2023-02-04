@@ -244,14 +244,22 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
 
   const matcher: Matcher = {
     isPathAllowed: () => true,
-    isIgnored: picomatch(opts.ignorePaths, {
-      // Remove leading dots from test string before matching
-      // as globstar '**' won't match them. Enable the format
-      // option only when fullPath is false.
-      format: opts.fullPath
-        ? undefined
-        : (str: string) => str.replace(/^\/?(\.{1,2}\/)+/, ''),
-    }),
+    isIgnored: (() => {
+      // eslint-disable-next-line no-useless-catch
+      try {
+        // Throw error if the pattern is not a valid string
+        return picomatch(opts.ignorePaths, {
+          // Remove leading dots from test string before matching
+          // as globstar '**' won't match them. Enable the format
+          // option only when fullPath is false.
+          format: opts.fullPath
+            ? undefined
+            : (str: string) => str.replace(/^\/?(\.{1,2}\/)+/, ''),
+        });
+      } catch (error) {
+        throw error;
+      }
+    })(),
   };
 
   // Get the drive letter of the cwd if windows.
@@ -260,9 +268,15 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
   let depth = opts.depth > 0 ? opts.depth + 1 : 0;
 
   dirs.forEach((dir) => {
-    // Try reading the path content and throw error for any of the
-    // errors like ENOENT, EPERM, EACCES, etc
     try {
+      // Throw error if the pattern is not a valid string
+      if (typeof dir !== 'string' || dir === '') {
+        throw new TypeError(
+          `Expected pattern to be a non-empty string but received ${
+            dir === '' ? 'empty string' : typeof dir
+          } (${dir})`
+        );
+      }
       // Warn and ignore that dir from reading contents if negated pattern is used as prefix.
       if (dir[0] === '!') {
         console.warn(
