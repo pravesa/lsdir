@@ -284,7 +284,9 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
         depth = glob.indexOf('**') !== -1 ? depth : 2;
       }
 
-      dir = path.posix.join(opts.root, base).replace(/\\/g, '/');
+      dir = path.posix
+        .join(opts.root, path.relative('.', base))
+        .replace(/\\/g, '/');
 
       // When fullPath is 'true', use the absolute path else resolve the relative path.
       if (opts.fullPath) {
@@ -317,8 +319,10 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
       }
     } catch (error) {
       const err = error as NodeJS.ErrnoException;
-      console.error('\x1B[38;5;196m' + err.message + '\x1B[0m\n');
-      throw error;
+      if (err.code !== 'ENOENT') {
+        console.error('\x1B[38;5;196m' + err.message + '\x1B[0m\n');
+        throw error;
+      }
     }
   });
 
