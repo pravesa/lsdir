@@ -250,10 +250,13 @@ function lsdirp(dirs: string[], options: LsdirpOptions = {}) {
         // Throw error if the pattern is not a valid string
         return picomatch(opts.ignorePaths, {
           // Remove leading dots from test string before matching
-          // as globstar '**' won't match them. Enable the format
-          // option only when fullPath is false.
+          // as globstar '**' won't match them
           format: opts.fullPath
-            ? undefined
+            ? (str: string) =>
+                path
+                  .relative('.', str)
+                  .replace(/\\/g, '/')
+                  .replace(/^\/?(\.{1,2}\/)+/, '')
             : (str: string) => str.replace(/^\/?(\.{1,2}\/)+/, ''),
         });
       } catch (error) {
